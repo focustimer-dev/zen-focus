@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zen Pomodoro</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='rgba(255, 255, 255, 0.8)'/><path d='M 50 2 A 48 48 0 0 1 50 98 A 24 24 0 0 1 50 50 A 24 24 0 0 0 50 2' fill='rgba(102, 126, 234, 0.8)'/><circle cx='50' cy='26' r='8' fill='rgba(255, 255, 255, 0.9)'/><circle cx='50' cy='74' r='8' fill='rgba(102, 126, 234, 0.9)'/></svg>">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { font-size: 150%; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: var(--bg-gradient);
+            transition: background 0.8s ease;
+        }
+        body.complete { background: var(--complete-gradient); }
+        .container { text-align: center; padding: 40px; color: white; }
+        h1 { font-size: 2.5em; margin-bottom: 30px; color: rgba(255, 255, 255, 0.4); }
+        .time { font-size: 5em; font-weight: bold; margin: 30px 0; }
+        .habit { font-size: 1.8em; margin: 30px auto; max-width: 500px; color: rgba(180, 200, 220, 0.9); }
+        button {
+            background: rgba(255, 255, 255, 0.15);
+            color: rgba(255, 255, 255, 0.85);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 30px 80px;
+            font-size: 2.2em;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        button:hover { 
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+        button:active { transform: translateY(0); }
+        .hidden { display: none; }
+        #info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 28px;
+            height: 28px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: help;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            z-index: 10;
+            color: white;
+            font-size: 16px;
+        }
+        #info:hover { background: rgba(255, 255, 255, 0.25); }
+        #info::after { content: 'i'; }
+        
+        #resetTree {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 28px;
+            height: 28px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+        #resetTree:hover { 
+            background: rgba(255, 255, 255, 0.25);
+            transform: rotate(180deg);
+        }
+        #resetTree svg {
+            width: 16px;
+            height: 16px;
+        }
+        #resetTree .tooltip {
+            bottom: 40px;
+            top: auto;
+            left: 0;
+        }
+        
+        /* Flower of Life */
+        .flower-of-life {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            position: relative;
+            vertical-align: middle;
+            margin-left: 8px;
+        }
+        .flower-of-life::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 50% 50%, transparent 28%, rgba(255,255,255,0.4) 28%, rgba(255,255,255,0.4) 32%, transparent 32%),
+                radial-gradient(circle at 50% 0%, transparent 28%, rgba(255,255,255,0.4) 28%, rgba(255,255,255,0.4) 32%, transparent 32%),
+                radial-gradient(circle at 93% 25%, transparent 28%, rgba(255,255,255,0.4) 28%, rgba(255,255,255,0.4) 32%, transparent 32%),
+                radial-gradient(circle at 93% 75%, transparent 28%, rgba(255,255,255,0.4) 28%, rgba(255,255,255,0.4) 32%, transparent 32%),
+                radial-gradient(circle at 50% 100%, transparent 28%, rgba(255,255,255,0.4) 28%, rgba(255,255,255,0.4) 32%, transparent 32%),
+                radial-gradient(circle at 7% 75%, transparent 28%, rgba(255,255,255,0.4) 28%, rgba(255,255,255,0.4) 32%, transparent 32%),
+                radial-gradient(circle at 7% 25%, transparent 28%, rgba(255,255,255,0.4) 28%, rgba(255,255,255,0.4) 32%, transparent 32%);
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        /* Yin Yang */
+        .yin-yang {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            position: relative;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 20px auto 0;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .yin-yang:hover {
+            transform: scale(1.1) rotate(180deg);
+            box-shadow: 0 4px 20px var(--accent-glow, rgba(102, 126, 234, 0.3));
+        }
+        .yin-yang svg {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .tooltip {
+            position: absolute;
+            top: 50px;
+            left: 0;
+            background: rgba(255, 255, 255, 0.95);
+            color: var(--accent, #667eea);
+            padding: 15px 20px;
+            border-radius: 15px;
+            font-size: 14px;
+            line-height: 1.6;
+            width: 280px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        #info:hover .tooltip { opacity: 1; }
+        
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 400px;
+            backdrop-filter: blur(10px);
+        }
+        .modal-content h2 {
+            color: var(--accent, #667eea);
+            margin-bottom: 30px;
+            font-size: 1.8em;
+        }
+        .slider-container {
+            margin: 30px 0;
+        }
+        .slider {
+            width: 100%;
+            height: 12px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid var(--accent-30, rgba(102, 126, 234, 0.3));
+            outline: none;
+            -webkit-appearance: none;
+            backdrop-filter: blur(10px);
+        }
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid var(--accent-40, rgba(102, 126, 234, 0.4));
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            backdrop-filter: blur(10px);
+        }
+        .slider::-moz-range-thumb {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid var(--accent-40, rgba(102, 126, 234, 0.4));
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            backdrop-filter: blur(10px);
+        }
+        .energy-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            color: var(--accent, #667eea);
+            font-size: 0.9em;
+        }
+        
+        /* Plant */
+        #plant {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 150px;
+            z-index: 5;
+        }
+        .pot {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        .soil {
+            position: absolute;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 45px;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 50%;
+        }
+        #treeSvg {
+            position: absolute;
+            bottom: 35px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 100px;
+        }
+        .svg-leaf {
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+        .svg-leaf.show {
+            opacity: 1;
+        }
+        
+        /* Particles */
+        #particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            animation: float 20s infinite ease-in-out;
+        }
+        @keyframes float {
+            0% { 
+                transform: translateY(0) translateX(0);
+                opacity: 0;
+            }
+            10% { 
+                opacity: 0.8;
+            }
+            50% { 
+                transform: translateY(-50vh) translateX(30px);
+                opacity: 1;
+            }
+            90% { 
+                opacity: 0.8;
+            }
+            100% { 
+                transform: translateY(-100vh) translateX(-20px);
+                opacity: 0;
+            }
+        }
+
+        /* ===== THEME SWITCHER ===== */
+        #themeSwitcher {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 20;
+        }
+        #themeToggle {
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1.5px solid rgba(255, 255, 255, 0.25);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(12px);
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+            color: white;
+            padding: 0;
+            position: relative;
+        }
+        #themeToggle::after {
+            content: '';
+            position: absolute;
+            inset: -3px;
+            border-radius: 50%;
+            border: 1.5px solid rgba(255, 255, 255, 0);
+            transition: all 0.4s ease;
+        }
+        #themeToggle:hover {
+            background: rgba(255, 255, 255, 0.22);
+            transform: rotate(60deg) scale(1.08);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+        #themeToggle:hover::after {
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        #themeToggle svg {
+            width: 15px;
+            height: 15px;
+            opacity: 0.85;
+        }
+
+        .theme-panel {
+            position: absolute;
+            top: 46px;
+            right: 0;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(24px) saturate(1.8);
+            border-radius: 18px;
+            padding: 14px;
+            box-shadow: 
+                0 12px 40px rgba(0, 0, 0, 0.12),
+                0 2px 8px rgba(0, 0, 0, 0.06),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-10px) scale(0.92);
+            transition: all 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+            width: 210px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        .theme-panel.open {
+            opacity: 1;
+            pointer-events: all;
+            transform: translateY(0) scale(1);
+        }
+        .theme-panel-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #aaa;
+            margin-bottom: 10px;
+            padding-left: 6px;
+            font-weight: 600;
+        }
+        .theme-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 7px 8px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.23, 1, 0.32, 1);
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            opacity: 0;
+            transform: translateX(-6px);
+        }
+        .theme-panel.open .theme-option {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .theme-panel.open .theme-option:nth-child(2) { transition-delay: 0.03s; }
+        .theme-panel.open .theme-option:nth-child(3) { transition-delay: 0.06s; }
+        .theme-panel.open .theme-option:nth-child(4) { transition-delay: 0.09s; }
+        .theme-panel.open .theme-option:nth-child(5) { transition-delay: 0.12s; }
+        .theme-panel.open .theme-option:nth-child(6) { transition-delay: 0.15s; }
+        .theme-option:hover {
+            background: rgba(0, 0, 0, 0.04);
+            transform: translateX(2px);
+        }
+        .theme-option.active {
+            background: rgba(0, 0, 0, 0.06);
+        }
+        .theme-swatch {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+            transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+            position: relative;
+        }
+        .theme-option:hover .theme-swatch {
+            transform: scale(1.12);
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.18);
+        }
+        .theme-option.active .theme-swatch {
+            border-color: rgba(255, 255, 255, 1);
+            box-shadow: 
+                0 0 0 2px rgba(0, 0, 0, 0.1),
+                0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+        .theme-option.active .theme-check {
+            opacity: 1;
+            transform: scale(1);
+        }
+        .theme-check {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: scale(0.5);
+            margin-top: -5px;
+            margin-left: -5px;
+            width: 10px;
+            height: 10px;
+            opacity: 0;
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            pointer-events: none;
+        }
+        .theme-label {
+            font-size: 12.5px;
+            color: #555;
+            font-weight: 500;
+            letter-spacing: 0.2px;
+            transition: color 0.2s;
+        }
+        .theme-option:hover .theme-label {
+            color: #333;
+        }
+        .theme-option.active .theme-label {
+            color: #333;
+            font-weight: 600;
+        }
+        
+        /* Mobile Optimizations */
+        @media (max-width: 768px) {
+            h1 { font-size: 2em; }
+            .time { font-size: 3.5em; }
+            .habit { font-size: 1.4em; padding: 0 20px; }
+            button { padding: 20px 50px; font-size: 1.6em; }
+            .modal-content { 
+                max-width: 90%; 
+                padding: 30px 20px; 
+            }
+            .tooltip { width: 220px; font-size: 13px; }
+            #plant { 
+                transform: translateX(-50%) scale(0.8);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            h1 { font-size: 1.6em; }
+            .time { font-size: 2.8em; }
+            .habit { font-size: 1.2em; }
+            button { padding: 15px 40px; font-size: 1.4em; }
+        }
+    </style>
+
+    <!-- PWA Support -->
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Zen Focus">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%23667eea'/><circle cx='90' cy='90' r='60' fill='rgba(255,255,255,0.15)' stroke='rgba(255,255,255,0.4)' stroke-width='2'/><path d='M90 30 A60 60 0 0 1 90 150 A30 30 0 0 1 90 90 A30 30 0 0 0 90 30' fill='rgba(255,255,255,0.6)'/><circle cx='90' cy='60' r='9' fill='rgba(255,255,255,0.9)'/><circle cx='90' cy='120' r='9' fill='rgba(255,255,255,0.5)'/></svg>">
+</head>
+<body>
+    <div id="particles"></div>
+    
+    <div id="info">
+        <div class="tooltip" id="infoTooltip">This tool sets a timer between 18 and 22 minutes. It lets you know when there's 30 seconds left. Check in your energy levels and grow your Bodhi tree. Enjoy your work.</div>
+    </div>
+    
+    <!-- Theme Switcher -->
+    <div id="themeSwitcher">
+        <button id="themeToggle" onclick="toggleThemePanel()" aria-label="Change theme">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+            </svg>
+        </button>
+        <div class="theme-panel" id="themePanel"></div>
+    </div>
+    
+    <div id="resetTree" onclick="resetTree()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255, 255, 255, 0.8)" stroke-width="2">
+            <path d="M12 2 L12 8 M12 2 C8 2 4 4 4 8 C4 10 5 12 7 13 M12 2 C16 2 20 4 20 8 C20 10 19 12 17 13 M7 13 C5 14 4 16 4 18 C4 20 6 22 12 22 M17 13 C19 14 20 16 20 18 C20 20 18 22 12 22"/>
+        </svg>
+        <div class="tooltip" id="resetTooltip">Reset tree progress?</div>
+    </div>
+    
+    <div id="plant">
+        <svg id="treeSvg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet"></svg>
+        <div class="soil"></div>
+        <div class="pot"></div>
+    </div>
+    
+    <div class="container">
+        <h1 id="status">Ready to Focus</h1>
+        <div id="time" class="time hidden"></div>
+        <div id="habit" class="habit hidden"></div>
+        <button id="btn" onclick="showEnergyCheck('before')">Start Focus Time</button>
+        <button id="pauseBtn" class="hidden" onclick="togglePause()" style="margin-top: 20px;">Pause</button>
+    </div>
+
+    <script>
+
+        // ===== THEMES =====
+        const themes = {
+            zen: {
+                name: 'Zen Purple', growText: 'grow your Bodhi tree', resetText: 'Reset tree progress?',
+                gradient: ['#667eea', '#764ba2'],
+                complete: ['#11998e', '#38ef7d'],
+                accent: '#667eea',
+                swatch: 'linear-gradient(135deg, #667eea, #764ba2)',
+            },
+            ocean: {
+                name: 'Deep Ocean', growText: 'grow your coral reef', resetText: 'Reset coral progress?',
+                gradient: ['#0f2027', '#2c5364'],
+                complete: ['#134e5e', '#71b280'],
+                accent: '#2c5364',
+                swatch: 'linear-gradient(135deg, #0f2027, #2c5364)',
+            },
+            sunset: {
+                name: 'Sunset', growText: 'add rays to your sun', resetText: 'Reset sun progress?',
+                gradient: ['#c94b4b', '#4b134f'],
+                complete: ['#b06ab3', '#4568dc'],
+                accent: '#c94b4b',
+                swatch: 'linear-gradient(135deg, #c94b4b, #4b134f)',
+            },
+            midnight: {
+                name: 'Midnight', growText: 'fill the moon', resetText: 'Reset moon progress?',
+                gradient: ['#16222a', '#3a6073'],
+                complete: ['#2b5876', '#4e4376'],
+                accent: '#3a6073',
+                swatch: 'linear-gradient(135deg, #16222a, #3a6073)',
+            },
+            garden: {
+                name: 'Zen Garden', growText: 'grow your bamboo', resetText: 'Reset bamboo progress?',
+                gradient: ['#3a6b35', '#799e72'],
+                complete: ['#56ab2f', '#a8e063'],
+                accent: '#3a6b35',
+                swatch: 'linear-gradient(135deg, #3a6b35, #799e72)',
+            },
+        };
+
+        // Safe localStorage wrapper for iframe sandboxes
+        const safeStorage = {
+            getItem(k) { try { return localStorage.getItem(k); } catch(e) { return null; } },
+            setItem(k,v) { try { localStorage.setItem(k,v); } catch(e) {} }
+        };
+
+        let currentTheme = safeStorage.getItem('zenTheme') || 'zen';
+        let themePanelOpen = false;
+
+        const hexToRgb = (hex) => {
+            const n = parseInt(hex.replace('#',''), 16);
+            return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+        };
+
+        const applyTheme = (id) => {
+            const t = themes[id];
+            if (!t) return;
+            currentTheme = id;
+            safeStorage.setItem('zenTheme', id);
+
+            const c1 = hexToRgb(t.gradient[0]);
+            const c2 = hexToRgb(t.gradient[1]);
+            const cc1 = hexToRgb(t.complete[0]);
+            const cc2 = hexToRgb(t.complete[1]);
+
+            document.documentElement.style.setProperty('--bg-gradient',
+                `linear-gradient(135deg, ${t.gradient[0]} 0%, ${t.gradient[1]} 100%)`);
+            document.documentElement.style.setProperty('--complete-gradient',
+                `linear-gradient(135deg, ${t.complete[0]} 0%, ${t.complete[1]} 100%)`);
+            document.documentElement.style.setProperty('--accent', t.accent);
+            document.documentElement.style.setProperty('--accent-30', t.accent + '4d');
+            document.documentElement.style.setProperty('--accent-40', t.accent + '66');
+            document.documentElement.style.setProperty('--accent-glow', t.accent + '4d');
+
+            window._themeColors = { c1, c2, cc1, cc2 };
+
+            if (!timer || document.body.classList.contains('complete')) {
+                if (!document.body.classList.contains('complete')) {
+                    document.body.style.background =
+                        `linear-gradient(135deg, rgb(${c1.r},${c1.g},${c1.b}) 0%, rgb(${c2.r},${c2.g},${c2.b}) 100%)`;
+                } else {
+                    document.body.style.background =
+                        `linear-gradient(135deg, rgb(${cc1.r},${cc1.g},${cc1.b}) 0%, rgb(${cc2.r},${cc2.g},${cc2.b}) 100%)`;
+                }
+            }
+
+            document.querySelectorAll('.yin-yang path').forEach(p => {
+                p.setAttribute('fill', t.accent + 'cc');
+            });
+            document.querySelectorAll('.yin-yang circle:last-child').forEach(c => {
+                c.setAttribute('fill', t.accent + 'e6');
+            });
+
+            document.querySelectorAll('.theme-option').forEach(el => {
+                el.classList.toggle('active', el.dataset.theme === id);
+            });
+
+            // Redraw growth shape for new theme
+            updatePlant();
+
+            // Update tooltips for current theme
+            const infoTip = document.getElementById('infoTooltip');
+            if (infoTip) infoTip.textContent = `This tool sets a timer between 18 and 22 minutes. It lets you know when there's 30 seconds left. Check in your energy levels and ${t.growText}. Enjoy your work.`;
+            const resetTip = document.getElementById('resetTooltip');
+            if (resetTip) resetTip.textContent = t.resetText;
+        };
+
+        const buildThemePanel = () => {
+            const panel = document.getElementById('themePanel');
+            panel.innerHTML = '<div class="theme-panel-title">Theme</div>';
+            Object.entries(themes).forEach(([id, t]) => {
+                const btn = document.createElement('button');
+                btn.className = 'theme-option' + (id === currentTheme ? ' active' : '');
+                btn.dataset.theme = id;
+                btn.innerHTML = `
+                    <span class="theme-swatch" style="background:${t.swatch}">
+                        <svg class="theme-check" viewBox="0 0 10 10" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M2 5.5 L4 7.5 L8 3"/>
+                        </svg>
+                    </span>
+                    <span class="theme-label">${t.name}</span>
+                `;
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    applyTheme(id);
+                };
+                panel.appendChild(btn);
+            });
+        };
+
+        const toggleThemePanel = () => {
+            themePanelOpen = !themePanelOpen;
+            document.getElementById('themePanel').classList.toggle('open', themePanelOpen);
+        };
+
+        document.addEventListener('click', (e) => {
+            if (themePanelOpen && !document.getElementById('themeSwitcher').contains(e.target)) {
+                themePanelOpen = false;
+                document.getElementById('themePanel').classList.remove('open');
+            }
+        });
+
+        // ===== ORIGINAL APP =====
+        const habits = [
+            'Close your eyes and breathe deeply',
+            'Notice five things you can see',
+            'Sip water mindfully',
+            'Stretch gently and slowly',
+            'Feel your feet on the ground',
+            'Release tension from your shoulders',
+            'Smile softly to yourself',
+            'Listen to the sounds around you',
+            'Let thoughts pass like clouds',
+            'Find stillness within movement',
+            'Empty the mind to fill with clarity',
+            'The present moment is the only teacher',
+            'Simplicity reveals what matters'
+        ];
+
+        var remaining, timer, paused = false, pausedAt = 0, endTime = 0;
+        let energyBefore = 0, energyAfter = 0;
+        let sessions = parseInt(safeStorage.getItem('sessions') || '0');
+        let timerAdjustment = parseInt(safeStorage.getItem('timerAdjustment') || '0');
+        
+        try {
+            if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+        } catch(e) {}
+
+        const playSound = (freq = 528, dur = 1, vol = 0.3) => {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(vol, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + dur);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + dur);
+        };
+        
+        const vibrate = () => navigator.vibrate?.([200, 100, 200, 100, 200]);
+        
+        const showNotification = (habit) => {
+            try {
+                if (Notification.permission === 'granted') {
+                    new Notification('🎉 Pomodoro Complete!', {
+                    body: habit,
+                    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="80" font-size="80">🍅</text></svg>',
+                    requireInteraction: true
+                    });
+                }
+            } catch(e) {}
+        };
+        
+        const flashTitle = () => {
+            let count = 0;
+            const original = document.title;
+            const flash = setInterval(() => {
+                document.title = count % 2 === 0 ? '🎉 COMPLETE!' : original;
+                if (++count > 10) {
+                    clearInterval(flash);
+                    document.title = original;
+                }
+            }, 500);
+        };
+        
+        const updateGradient = (progress) => {
+            const { c1, c2, cc1, cc2 } = window._themeColors;
+            const lerp = (a, b, t) => Math.round(a + (b - a) * t);
+            const r1 = lerp(c1.r, cc1.r, progress), g1 = lerp(c1.g, cc1.g, progress), b1 = lerp(c1.b, cc1.b, progress);
+            const r2 = lerp(c2.r, cc2.r, progress), g2 = lerp(c2.g, cc2.g, progress), b2 = lerp(c2.b, cc2.b, progress);
+            document.body.style.background = `linear-gradient(135deg, rgb(${r1},${g1},${b1}) 0%, rgb(${r2},${g2},${b2}) 100%)`;
+        };
+        
+        const showEnergyCheck = (type) => {
+            const t = themes[currentTheme];
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h2>${type === 'before' ? 'How is your energy?' : 'How is your energy now?'}</h2>
+                    <div class="slider-container">
+                        <input type="range" min="1" max="10" value="5" class="slider" id="energySlider">
+                        <div class="energy-labels">
+                            <span>Low</span>
+                            <span>High</span>
+                        </div>
+                    </div>
+                    <div class="yin-yang" onclick="submitEnergy('${type}', this.closest('.modal'))">
+                        <svg viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="48" fill="rgba(255, 255, 255, 0.8)"/>
+                            <path d="M 50 2 A 48 48 0 0 1 50 98 A 24 24 0 0 1 50 50 A 24 24 0 0 0 50 2" fill="${t.accent}cc"/>
+                            <circle cx="50" cy="26" r="8" fill="rgba(255, 255, 255, 0.9)"/>
+                            <circle cx="50" cy="74" r="8" fill="${t.accent}e6"/>
+                        </svg>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        };
+        
+        const submitEnergy = (type, modal) => {
+            const value = parseInt(document.getElementById('energySlider').value);
+            if (type === 'before') {
+                energyBefore = value;
+                modal.remove();
+                start();
+            } else {
+                energyAfter = value;
+                modal.remove();
+                
+                if (energyAfter < energyBefore) {
+                    timerAdjustment = -Math.floor(Math.random() * 3 + 3);
+                    safeStorage.setItem('timerAdjustment', timerAdjustment);
+                } else if (energyAfter > energyBefore) {
+                    timerAdjustment = 1;
+                    safeStorage.setItem('timerAdjustment', timerAdjustment);
+                } else {
+                    timerAdjustment = 0;
+                    safeStorage.setItem('timerAdjustment', '0');
+                }
+                
+                sessions++;
+                safeStorage.setItem('sessions', sessions);
+                updatePlant();
+            }
+        };
+        
+        // ===== THEMED GROWTH SHAPES =====
+        const NS = 'http://www.w3.org/2000/svg';
+        const W = (o) => `rgba(255, 255, 255, ${o})`;
+
+        const el = (tag, attrs) => {
+            const e = document.createElementNS(NS, tag);
+            Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v));
+            return e;
+        };
+
+        const fadeIn = (e, delay) => {
+            e.setAttribute('class', 'svg-leaf');
+            setTimeout(() => e.classList.add('show'), delay || 80);
+        };
+
+        // --- Bases ---
+        const drawBasePot = () => {
+            document.querySelector('.pot').style.display = '';
+            document.querySelector('.soil').style.display = '';
+            document.querySelector('.pot').style.cssText = '';
+            document.querySelector('.soil').style.cssText = '';
+        };
+
+        const drawBaseRock = () => {
+            const pot = document.querySelector('.pot');
+            const soil = document.querySelector('.soil');
+            pot.style.cssText = 'position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:60px;height:18px;background:rgba(255,255,255,0.15);border-radius:40% 40% 50% 50%;border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(10px);';
+            soil.style.cssText = 'position:absolute;bottom:14px;left:50%;transform:translateX(-50%);width:30px;height:8px;background:rgba(255,255,255,0.12);border-radius:50%;';
+        };
+
+        const drawBaseHorizon = () => {
+            const pot = document.querySelector('.pot');
+            const soil = document.querySelector('.soil');
+            pot.style.cssText = 'position:absolute;bottom:6px;left:50%;transform:translateX(-50%);width:90px;height:1px;background:rgba(255,255,255,0.3);border-radius:0;border:none;backdrop-filter:none;';
+            soil.style.display = 'none';
+        };
+
+        const drawBaseCloud = () => {
+            const pot = document.querySelector('.pot');
+            const soil = document.querySelector('.soil');
+            pot.style.cssText = 'position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:50px;height:12px;background:rgba(255,255,255,0.1);border-radius:50%;border:none;backdrop-filter:blur(8px);box-shadow:10px 0 0 -2px rgba(255,255,255,0.08),-10px 0 0 -2px rgba(255,255,255,0.08);';
+            soil.style.display = 'none';
+        };
+
+        const drawBaseSand = () => {
+            const pot = document.querySelector('.pot');
+            const soil = document.querySelector('.soil');
+            pot.style.cssText = 'position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:70px;height:12px;background:rgba(255,255,255,0.12);border-radius:50%;border:1px solid rgba(255,255,255,0.15);backdrop-filter:blur(10px);';
+            soil.style.cssText = 'position:absolute;bottom:6px;left:50%;transform:translateX(-50%);width:90px;height:1px;background:rgba(255,255,255,0.15);border-radius:0;';
+        };
+
+        // --- Bodhi Tree (Zen Purple) ---
+        const drawTree = (svg, s) => {
+            drawBasePot();
+            if (s === 0) return;
+            let stemH, branches;
+            if (s <= 3) { stemH = 40; branches = [[40, 0, 20]]; }
+            else if (s <= 7) { stemH = 55; branches = [[55,-40,18],[55,40,18],[43,0,20]]; }
+            else { stemH = 70; branches = [[70,-25,18],[70,25,18],[58,-50,16],[58,50,16],[46,0,20]]; }
+
+            svg.appendChild(el('line', { x1:50, y1:100, x2:50, y2:100-stemH, stroke:W(0.7), 'stroke-width':2.5, 'stroke-linecap':'round' }));
+            branches.forEach(([y, ang, len]) => {
+                const rad = ang * Math.PI / 180;
+                const sx = 50, sy = 100 - y;
+                const ex = sx + Math.cos(rad)*len, ey = sy - Math.sin(rad)*len;
+                const cx = sx + Math.cos(rad)*len*0.6, cy = sy - Math.sin(rad)*len*0.2 - 5;
+                svg.appendChild(el('path', { d:`M${sx} ${sy} Q${cx} ${cy} ${ex} ${ey}`, stroke:W(0.65), 'stroke-width':2, 'stroke-linecap':'round', fill:'none' }));
+                const ls = 10;
+                const leaf = el('path', { d:`M${ex} ${ey} Q${ex-ls} ${ey-ls} ${ex} ${ey-ls*2.2} Q${ex+ls} ${ey-ls} ${ex} ${ey}`, fill:W(0.75), stroke:W(0.5), 'stroke-width':0.8 });
+                svg.appendChild(leaf);
+                fadeIn(leaf);
+            });
+        };
+
+        // --- Coral (Deep Ocean) ---
+        const drawCoral = (svg, s) => {
+            drawBaseRock();
+            if (s === 0) return;
+            // Main stalk
+            svg.appendChild(el('path', { d:'M50 100 Q48 80 50 65', stroke:W(0.6), 'stroke-width':2.5, 'stroke-linecap':'round', fill:'none' }));
+
+            if (s >= 1) {
+                // Small coral arm right
+                const arm1 = el('path', { d:'M50 78 Q58 72 62 65 Q65 60 63 55', stroke:W(0.55), 'stroke-width':1.8, 'stroke-linecap':'round', fill:'none' });
+                svg.appendChild(arm1); fadeIn(arm1);
+                // Tiny bulb
+                const b1 = el('circle', { cx:63, cy:54, r:3, fill:W(0.4), stroke:W(0.3), 'stroke-width':0.5 });
+                svg.appendChild(b1); fadeIn(b1, 150);
+            }
+            if (s >= 4) {
+                // Left arm
+                const arm2 = el('path', { d:'M50 82 Q42 74 37 68 Q33 62 35 55', stroke:W(0.55), 'stroke-width':1.8, 'stroke-linecap':'round', fill:'none' });
+                svg.appendChild(arm2); fadeIn(arm2, 100);
+                const b2 = el('circle', { cx:35, cy:54, r:3.5, fill:W(0.4), stroke:W(0.3), 'stroke-width':0.5 });
+                svg.appendChild(b2); fadeIn(b2, 200);
+                // Top extension
+                const arm3 = el('path', { d:'M50 65 Q52 55 50 45', stroke:W(0.5), 'stroke-width':1.5, 'stroke-linecap':'round', fill:'none' });
+                svg.appendChild(arm3); fadeIn(arm3, 120);
+                const b3 = el('circle', { cx:50, cy:43, r:3, fill:W(0.4), stroke:W(0.3), 'stroke-width':0.5 });
+                svg.appendChild(b3); fadeIn(b3, 250);
+            }
+            if (s >= 8) {
+                // Extra branches
+                const arm4 = el('path', { d:'M62 65 Q68 58 72 50 Q74 45 72 40', stroke:W(0.45), 'stroke-width':1.3, 'stroke-linecap':'round', fill:'none' });
+                svg.appendChild(arm4); fadeIn(arm4, 140);
+                const b4 = el('circle', { cx:72, cy:39, r:2.5, fill:W(0.35), stroke:W(0.25), 'stroke-width':0.5 });
+                svg.appendChild(b4); fadeIn(b4, 280);
+                const arm5 = el('path', { d:'M37 68 Q30 60 27 52 Q25 46 27 40', stroke:W(0.45), 'stroke-width':1.3, 'stroke-linecap':'round', fill:'none' });
+                svg.appendChild(arm5); fadeIn(arm5, 160);
+                const b5 = el('circle', { cx:27, cy:39, r:2.5, fill:W(0.35), stroke:W(0.25), 'stroke-width':0.5 });
+                svg.appendChild(b5); fadeIn(b5, 300);
+                // Rising bubbles
+                [{ cx:55, cy:32, r:1.2 }, { cx:44, cy:28, r:1 }, { cx:52, cy:20, r:0.8 }].forEach((p, i) => {
+                    const bub = el('circle', { ...p, fill:'none', stroke:W(0.3), 'stroke-width':0.5 });
+                    svg.appendChild(bub); fadeIn(bub, 350 + i*80);
+                });
+            }
+        };
+
+        // --- Sun (Sunset) ---
+        const drawSun = (svg, s) => {
+            drawBaseHorizon();
+            if (s === 0) return;
+            const cy = s <= 3 ? 70 : s <= 7 ? 55 : 42;
+            const r = s <= 3 ? 10 : s <= 7 ? 14 : 18;
+            const numRays = s <= 3 ? 0 : s <= 7 ? 6 : 10;
+            const rayLen = s <= 3 ? 0 : s <= 7 ? 8 : 12;
+
+            // Glow
+            const glow = el('circle', { cx:50, cy:cy, r:r+4, fill:W(0.08), stroke:'none' });
+            svg.appendChild(glow); fadeIn(glow);
+
+            // Disc
+            const disc = el('circle', { cx:50, cy:cy, r:r, fill:W(0.2), stroke:W(0.5), 'stroke-width':1.2 });
+            svg.appendChild(disc); fadeIn(disc, 50);
+
+            // Rays
+            for (let i = 0; i < numRays; i++) {
+                const ang = (i / numRays) * Math.PI * 2 - Math.PI / 2;
+                const x1 = 50 + Math.cos(ang) * (r + 4);
+                const y1 = cy + Math.sin(ang) * (r + 4);
+                const x2 = 50 + Math.cos(ang) * (r + 4 + rayLen);
+                const y2 = cy + Math.sin(ang) * (r + 4 + rayLen);
+                const ray = el('line', { x1, y1, x2, y2, stroke:W(0.4), 'stroke-width':1, 'stroke-linecap':'round' });
+                svg.appendChild(ray);
+                fadeIn(ray, 100 + i * 40);
+            }
+        };
+
+        // --- Moon (Midnight) ---
+        const drawMoon = (svg, s) => {
+            drawBaseCloud();
+            if (s === 0) return;
+
+            if (s <= 3) {
+                // Thin crescent
+                const crescent = el('path', {
+                    d: 'M56 68 A 14 14 0 1 1 56 40 A 10 10 0 1 0 56 68',
+                    fill: W(0.55), stroke: W(0.3), 'stroke-width': 0.5
+                });
+                svg.appendChild(crescent); fadeIn(crescent);
+            } else if (s <= 7) {
+                // Half moon
+                const half = el('path', {
+                    d: 'M50 36 A 18 18 0 0 1 50 72 L50 36 Z',
+                    fill: W(0.5), stroke: W(0.35), 'stroke-width': 0.5
+                });
+                svg.appendChild(half);
+                const outline = el('circle', { cx:50, cy:54, r:18, fill:'none', stroke:W(0.3), 'stroke-width':0.8 });
+                svg.appendChild(outline);
+                fadeIn(half); fadeIn(outline, 80);
+            } else {
+                // Full moon with craters
+                const moon = el('circle', { cx:50, cy:50, r:20, fill:W(0.45), stroke:W(0.35), 'stroke-width':0.8 });
+                svg.appendChild(moon); fadeIn(moon);
+                // Subtle craters
+                [{cx:44, cy:45, r:3.5}, {cx:55, cy:52, r:2.5}, {cx:48, cy:57, r:2}, {cx:56, cy:43, r:1.8}].forEach((c, i) => {
+                    const crater = el('circle', { ...c, fill:W(0.15), stroke:W(0.2), 'stroke-width':0.4 });
+                    svg.appendChild(crater); fadeIn(crater, 120 + i*60);
+                });
+                // Outer glow
+                const glow = el('circle', { cx:50, cy:50, r:24, fill:'none', stroke:W(0.1), 'stroke-width':2 });
+                svg.appendChild(glow); fadeIn(glow, 200);
+            }
+        };
+
+        // --- Bamboo (Zen Garden) ---
+        const drawBamboo = (svg, s) => {
+            drawBaseSand();
+            if (s === 0) return;
+
+            const drawStalk = (x, h, delay) => {
+                // Segmented stalk
+                const segH = 15;
+                const segs = Math.ceil(h / segH);
+                for (let i = 0; i < segs; i++) {
+                    const y1 = 100 - i * segH;
+                    const y2 = Math.max(100 - h, 100 - (i + 1) * segH);
+                    const stalk = el('line', { x1:x, y1, x2:x, y2, stroke:W(0.6), 'stroke-width':2, 'stroke-linecap':'round' });
+                    svg.appendChild(stalk);
+                    if (i > 0) {
+                        // Joint node
+                        const node = el('ellipse', { cx:x, cy:y1, rx:3, ry:1, fill:W(0.35), stroke:'none' });
+                        svg.appendChild(node);
+                    }
+                }
+            };
+
+            const drawLeaf = (x, y, side, delay) => {
+                const dx = side * 12;
+                const leaf = el('path', {
+                    d: `M${x} ${y} Q${x+dx*0.6} ${y-5} ${x+dx} ${y-2} Q${x+dx*0.6} ${y+1} ${x} ${y}`,
+                    fill: W(0.5), stroke: W(0.35), 'stroke-width': 0.5
+                });
+                svg.appendChild(leaf); fadeIn(leaf, delay);
+            };
+
+            if (s <= 3) {
+                drawStalk(50, 50, 0);
+                drawLeaf(50, 65, 1, 100);
+                drawLeaf(50, 50, -1, 160);
+            } else if (s <= 7) {
+                drawStalk(45, 55, 0);
+                drawStalk(58, 45, 50);
+                drawLeaf(45, 60, -1, 100);
+                drawLeaf(45, 45, 1, 150);
+                drawLeaf(58, 65, 1, 120);
+                drawLeaf(58, 55, -1, 180);
+            } else {
+                drawStalk(38, 60, 0);
+                drawStalk(50, 70, 30);
+                drawStalk(62, 50, 60);
+                drawLeaf(38, 58, -1, 100);
+                drawLeaf(38, 42, 1, 160);
+                drawLeaf(50, 55, -1, 120);
+                drawLeaf(50, 40, 1, 180);
+                drawLeaf(50, 30, -1, 220);
+                drawLeaf(62, 62, 1, 140);
+                drawLeaf(62, 50, -1, 200);
+            }
+
+            // Rake lines in sand
+            [22, 30, 38].forEach((x, i) => {
+                const line = el('line', { x1: x, y1: 98, x2: x + 56, y2: 98, stroke: W(0.12), 'stroke-width': 0.5, 'stroke-linecap': 'round' });
+                svg.appendChild(line);
+            });
+        };
+
+        // --- Dispatcher ---
+        const updatePlant = () => {
+            const svg = document.getElementById('treeSvg');
+            svg.innerHTML = '';
+            const drawFns = { zen: drawTree, ocean: drawCoral, sunset: drawSun, midnight: drawMoon, garden: drawBamboo };
+            (drawFns[currentTheme] || drawTree)(svg, sessions);
+        };
+        
+        const createParticles = () => {
+            const container = document.getElementById('particles');
+            container.innerHTML = '';
+            const isMobile = window.innerWidth <= 768;
+            const particleCount = isMobile ? 15 : 30;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + 'vh';
+                particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                particle.style.animationDelay = (Math.random() * 5) + 's';
+                container.appendChild(particle);
+            }
+        };
+        
+        const removeParticles = () => {
+            document.getElementById('particles').innerHTML = '';
+        };
+        
+        const togglePause = () => {
+            paused = !paused;
+            if (paused) {
+                pausedAt = Date.now();
+            } else {
+                endTime += (Date.now() - pausedAt);
+            }
+            document.getElementById('pauseBtn').textContent = paused ? 'Resume' : 'Pause';
+            document.getElementById('pauseBtn').style.color = 'rgba(255, 255, 255, 0.7)';
+            document.getElementById('status').textContent = paused ? 'Paused' : 'Focus Time';
+            if (!paused) {
+                const fol = document.querySelector('#status .flower-of-life');
+                if (!fol) {
+                    const flower = document.createElement('span');
+                    flower.className = 'flower-of-life';
+                    document.getElementById('status').appendChild(flower);
+                }
+            }
+        };
+        
+        const start = () => {
+            let minutes = 18 + Math.floor(Math.random() * 5);
+            minutes = Math.max(10, minutes + timerAdjustment);
+            
+            const totalSeconds = minutes * 60;
+            endTime = Date.now() + (totalSeconds * 1000);
+            paused = false;
+            let thirtySecondSoundPlayed = false;
+            
+            document.getElementById('status').innerHTML = 'Focus Time<span class="flower-of-life"></span>';
+            document.getElementById('time').classList.add('hidden');
+            document.getElementById('habit').classList.add('hidden');
+            document.getElementById('btn').classList.add('hidden');
+            document.getElementById('pauseBtn').classList.remove('hidden');
+            document.getElementById('pauseBtn').textContent = 'Pause';
+            document.getElementById('pauseBtn').style.color = 'rgba(255, 255, 255, 0.85)';
+            document.getElementById('info').style.display = 'none';
+            document.getElementById('resetTree').style.display = 'none';
+            document.getElementById('themeSwitcher').style.display = 'none';
+            document.body.classList.remove('complete');
+            updateGradient(0);
+            createParticles();
+            
+            if (timer) clearInterval(timer);
+            
+            timer = setInterval(() => {
+                if (!paused) {
+                    remaining = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
+                    const progress = 1 - (remaining / totalSeconds);
+                    updateGradient(progress);
+                    
+                    if (remaining === 30 && !thirtySecondSoundPlayed) {
+                        playSound(396, 1, 0.08);
+                        thirtySecondSoundPlayed = true;
+                    }
+                    
+                    if (remaining <= 30 && remaining > 0) {
+                        document.getElementById('time').textContent = remaining + 's';
+                        document.getElementById('time').classList.remove('hidden');
+                    }
+                    
+                    if (remaining === 0) {
+                        clearInterval(timer);
+                        timer = null;
+                        removeParticles();
+                        complete();
+                        return;
+                    }
+                }
+            }, 100);
+        };
+        
+        const complete = () => {
+            const habit = habits[Math.floor(Math.random() * habits.length)];
+            
+            playSound(432, 1.5, 0.12);
+            vibrate();
+            showNotification(habit);
+            flashTitle();
+            
+            document.body.classList.add('complete');
+            document.getElementById('status').textContent = 'Focus Time Complete';
+            document.getElementById('time').classList.add('hidden');
+            document.getElementById('habit').textContent = habit;
+            document.getElementById('habit').classList.remove('hidden');
+            document.getElementById('btn').textContent = 'Start Another';
+            document.getElementById('btn').classList.remove('hidden');
+            document.getElementById('btn').style.color = 'rgba(255, 255, 255, 0.85)';
+            document.getElementById('pauseBtn').classList.add('hidden');
+            document.getElementById('info').style.display = 'flex';
+            document.getElementById('resetTree').style.display = 'flex';
+            document.getElementById('themeSwitcher').style.display = 'block';
+            
+            showEnergyCheck('after');
+        };
+        
+        const resetTree = () => {
+            if ((typeof confirm !== 'undefined' ? confirm(themes[currentTheme].resetText) : true)) {
+                sessions = 0;
+                timerAdjustment = 0;
+                safeStorage.setItem('sessions', '0');
+                safeStorage.setItem('timerAdjustment', '0');
+                updatePlant();
+            }
+        };
+        
+        // Initialize
+        buildThemePanel();
+        applyTheme(currentTheme);
+        updatePlant();
+    
+
+
+        // ===== PWA: Inline Manifest + Service Worker =====
+        (() => {
+            // Skip entirely if running inside an iframe (e.g. preview sandbox)
+            if (window.self !== window.top) return;
+            // Inline manifest
+            const manifest = {
+                name: 'Zen Pomodoro',
+                short_name: 'Zen Focus',
+                description: 'A peaceful focus timer with themed growth',
+                start_url: location.href,
+                display: 'standalone',
+                background_color: '#667eea',
+                theme_color: '#667eea',
+                orientation: 'any',
+                icons: [{
+                    src: document.querySelector('link[rel="apple-touch-icon"]')?.href || '',
+                    sizes: '180x180',
+                    type: 'image/svg+xml',
+                    purpose: 'any maskable'
+                }]
+            };
+            const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+            const manifestUrl = URL.createObjectURL(manifestBlob);
+            const link = document.createElement('link');
+            link.rel = 'manifest';
+            link.href = manifestUrl;
+            document.head.appendChild(link);
+
+            // Inline service worker
+            const swCode = `
+                const CACHE_NAME = 'zen-pomodoro-v3';
+                self.addEventListener('install', e => {
+                    e.waitUntil(
+                        caches.open(CACHE_NAME).then(cache => 
+                            cache.add(self.registration.scope)
+                        ).then(() => self.skipWaiting())
+                    );
+                });
+                self.addEventListener('activate', e => {
+                    e.waitUntil(
+                        caches.keys().then(keys => 
+                            Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+                        ).then(() => self.clients.claim())
+                    );
+                });
+                self.addEventListener('fetch', e => {
+                    e.respondWith(
+                        caches.match(e.request).then(r => r || fetch(e.request).then(resp => {
+                            const clone = resp.clone();
+                            caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
+                            return resp;
+                        }))
+                    );
+                });
+            `;
+
+            try {
+                if ('serviceWorker' in navigator && location.protocol !== 'blob:') {
+                    const swBlob = new Blob([swCode], { type: 'application/javascript' });
+                    const swUrl = URL.createObjectURL(swBlob);
+                    navigator.serviceWorker.register(swUrl, { scope: location.href.substring(0, location.href.lastIndexOf('/') + 1) })
+                        .then(reg => console.log('SW registered:', reg.scope))
+                        .catch(() => {});
+                }
+            } catch(e) {}
+        })();
+
+</script>
+</body>
+</html>
