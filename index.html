@@ -244,35 +244,14 @@
             height: 150px;
             z-index: 5;
         }
-        .pot {
+
+        #treeSvg {
             position: absolute;
             bottom: 0;
             left: 50%;
             transform: translateX(-50%);
-            width: 50px;
-            height: 30px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 50%;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            backdrop-filter: blur(10px);
-        }
-        .soil {
-            position: absolute;
-            bottom: 25px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 45px;
-            height: 10px;
-            background: rgba(255, 255, 255, 0.25);
-            border-radius: 50%;
-        }
-        #treeSvg {
-            position: absolute;
-            bottom: 35px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100px;
-            height: 100px;
+            width: 120px;
+            height: 150px;
         }
         .svg-leaf {
             opacity: 0;
@@ -539,8 +518,6 @@
     
     <div id="plant">
         <svg id="treeSvg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet"></svg>
-        <div class="soil"></div>
-        <div class="pot"></div>
     </div>
     
     <div class="container">
@@ -836,45 +813,42 @@
             setTimeout(() => e.classList.add('show'), delay || 80);
         };
 
-        // --- Bases ---
-        const drawBasePot = () => {
-            document.querySelector('.pot').style.display = '';
-            document.querySelector('.soil').style.display = '';
-            document.querySelector('.pot').style.cssText = '';
-            document.querySelector('.soil').style.cssText = '';
+        // --- Bases (drawn inside SVG) ---
+        const drawBasePot = (svg) => {
+            // Subtle ground shadow
+            svg.appendChild(el('ellipse', { cx:50, cy:99, rx:12, ry:2, fill:W(0.1), stroke:'none' }));
         };
 
-        const drawBaseRock = () => {
-            const pot = document.querySelector('.pot');
-            const soil = document.querySelector('.soil');
-            pot.style.cssText = 'position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:60px;height:18px;background:rgba(255,255,255,0.15);border-radius:40% 40% 50% 50%;border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(10px);';
-            soil.style.cssText = 'position:absolute;bottom:14px;left:50%;transform:translateX(-50%);width:30px;height:8px;background:rgba(255,255,255,0.12);border-radius:50%;';
+        const drawBaseRock = (svg) => {
+            // Rocky outcrop
+            svg.appendChild(el('path', { d:'M30 100 Q35 88 50 86 Q65 88 70 100 Z', fill:W(0.12), stroke:W(0.18), 'stroke-width':0.6 }));
+            svg.appendChild(el('ellipse', { cx:50, cy:93, rx:10, ry:3, fill:W(0.1), stroke:'none' }));
         };
 
-        const drawBaseHorizon = () => {
-            const pot = document.querySelector('.pot');
-            const soil = document.querySelector('.soil');
-            pot.style.cssText = 'position:absolute;bottom:6px;left:50%;transform:translateX(-50%);width:90px;height:1px;background:rgba(255,255,255,0.3);border-radius:0;border:none;backdrop-filter:none;';
-            soil.style.display = 'none';
+        const drawBaseHorizon = (svg) => {
+            // Horizon line
+            svg.appendChild(el('line', { x1:15, y1:96, x2:85, y2:96, stroke:W(0.25), 'stroke-width':0.6, 'stroke-linecap':'round' }));
         };
 
-        const drawBaseCloud = () => {
-            const pot = document.querySelector('.pot');
-            const soil = document.querySelector('.soil');
-            pot.style.cssText = 'position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:50px;height:12px;background:rgba(255,255,255,0.1);border-radius:50%;border:none;backdrop-filter:blur(8px);box-shadow:10px 0 0 -2px rgba(255,255,255,0.08),-10px 0 0 -2px rgba(255,255,255,0.08);';
-            soil.style.display = 'none';
+        const drawBaseCloud = (svg) => {
+            // Wispy cloud
+            svg.appendChild(el('ellipse', { cx:50, cy:96, rx:16, ry:5, fill:W(0.08), stroke:'none' }));
+            svg.appendChild(el('ellipse', { cx:38, cy:97, rx:10, ry:3.5, fill:W(0.06), stroke:'none' }));
+            svg.appendChild(el('ellipse', { cx:62, cy:97, rx:10, ry:3.5, fill:W(0.06), stroke:'none' }));
         };
 
-        const drawBaseSand = () => {
-            const pot = document.querySelector('.pot');
-            const soil = document.querySelector('.soil');
-            pot.style.cssText = 'position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:70px;height:12px;background:rgba(255,255,255,0.12);border-radius:50%;border:1px solid rgba(255,255,255,0.15);backdrop-filter:blur(10px);';
-            soil.style.cssText = 'position:absolute;bottom:6px;left:50%;transform:translateX(-50%);width:90px;height:1px;background:rgba(255,255,255,0.15);border-radius:0;';
+        const drawBaseSand = (svg) => {
+            // Sand mound
+            svg.appendChild(el('ellipse', { cx:50, cy:97, rx:22, ry:5, fill:W(0.1), stroke:W(0.12), 'stroke-width':0.5 }));
+            // Rake lines
+            [35, 43, 51, 59, 67].forEach(x => {
+                svg.appendChild(el('line', { x1:x-6, y1:99, x2:x+6, y2:99, stroke:W(0.1), 'stroke-width':0.3, 'stroke-linecap':'round' }));
+            });
         };
 
         // --- Bodhi Tree (Zen Purple) ---
         const drawTree = (svg, s) => {
-            drawBasePot();
+            drawBasePot(svg);
             if (s === 0) return;
             let stemH, branches;
             if (s <= 3) { stemH = 40; branches = [[40, 0, 20]]; }
@@ -897,7 +871,7 @@
 
         // --- Coral (Deep Ocean) ---
         const drawCoral = (svg, s) => {
-            drawBaseRock();
+            drawBaseRock(svg);
             if (s === 0) return;
             // Main stalk
             svg.appendChild(el('path', { d:'M50 100 Q48 80 50 65', stroke:W(0.6), 'stroke-width':2.5, 'stroke-linecap':'round', fill:'none' }));
@@ -942,7 +916,7 @@
 
         // --- Sun (Sunset) ---
         const drawSun = (svg, s) => {
-            drawBaseHorizon();
+            drawBaseHorizon(svg);
             if (s === 0) return;
             const cy = s <= 3 ? 70 : s <= 7 ? 55 : 42;
             const r = s <= 3 ? 10 : s <= 7 ? 14 : 18;
@@ -972,7 +946,7 @@
 
         // --- Moon (Midnight) ---
         const drawMoon = (svg, s) => {
-            drawBaseCloud();
+            drawBaseCloud(svg);
             if (s === 0) return;
 
             if (s <= 3) {
@@ -1009,7 +983,7 @@
 
         // --- Bamboo (Zen Garden) ---
         const drawBamboo = (svg, s) => {
-            drawBaseSand();
+            drawBaseSand(svg);
             if (s === 0) return;
 
             const drawStalk = (x, h, delay) => {
@@ -1062,11 +1036,6 @@
                 drawLeaf(62, 50, -1, 200);
             }
 
-            // Rake lines in sand
-            [22, 30, 38].forEach((x, i) => {
-                const line = el('line', { x1: x, y1: 98, x2: x + 56, y2: 98, stroke: W(0.12), 'stroke-width': 0.5, 'stroke-linecap': 'round' });
-                svg.appendChild(line);
-            });
         };
 
         // --- Dispatcher ---
